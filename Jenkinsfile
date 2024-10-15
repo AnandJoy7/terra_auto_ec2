@@ -5,6 +5,7 @@ pipeline {
     environment {
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        GITHUB_CREDENTIALS = credentials('github-credentials') // Replace with your GitHub credentials ID
     }
 
     agent any
@@ -13,7 +14,10 @@ pipeline {
             steps {
                 script {
                     dir("terraform") {
-                        git "https://github.com/AnandJoy7/terra_auto_ec2.git"
+                        // Use GitHub credentials for authentication
+                        git credentialsId: 'github-credentials', // Your stored GitHub credentials ID
+                            branch: 'main', 
+                            url: "https://github.com/AnandJoy7/terra_auto_ec2.git"
                     }
                 }
             }
@@ -51,9 +55,8 @@ pipeline {
         stage('Run Python Script') {
             steps {
                 script {
-                    // Ensure you have the right directory and Python is available
-                    dir('src') {  // Change to the directory where your Python script is located
-                        sh 'python3 terra_run.py'  // Replace 'your_script.py' with your actual Python script name
+                    dir('src') {
+                        sh 'python3 terra_auto.py'  // Update with your Python script name
                     }
                 }
             }
