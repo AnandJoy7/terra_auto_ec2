@@ -25,9 +25,14 @@ pipeline {
 
         stage('Plan') {
             steps {
-                sh 'pwd; cd terraform/; terraform init'
-                sh "pwd; cd terraform/; terraform plan -out=tfplan"
-                sh 'pwd; cd terraform/; terraform show -no-color tfplan > tfplan.txt'
+                script {
+                    dir('terraform/src') { // Change to the directory containing .tf files
+                        sh 'pwd' // Optional: for debugging
+                        sh 'terraform init'
+                        sh "terraform plan -out=tfplan"
+                        sh 'terraform show -no-color tfplan > tfplan.txt'
+                    }
+                }
             }
         }
 
@@ -39,7 +44,7 @@ pipeline {
             }
             steps {
                 script {
-                    def plan = readFile 'terraform/tfplan.txt'
+                    def plan = readFile 'terraform/src/tfplan.txt' // Adjust the path
                     input message: "Do you want to apply the plan?",
                     parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                 }
@@ -48,7 +53,11 @@ pipeline {
 
         stage('Apply') {
             steps {
-                sh "pwd; cd terraform/; terraform apply -input=false tfplan"
+                script {
+                    dir('terraform/src') { // Change to the directory containing .tf files
+                        sh "terraform apply -input=false tfplan"
+                    }
+                }
             }
         }
 
@@ -56,7 +65,7 @@ pipeline {
             steps {
                 script {
                     dir('src') {
-                        sh 'python3 terra_auto.py'  // Update with your Python script name
+                        sh 'python3 your_script.py'  // Update with your Python script name
                     }
                 }
             }
