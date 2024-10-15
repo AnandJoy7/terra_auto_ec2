@@ -1,62 +1,62 @@
 pipeline {
-    agent any
-
+    parameters {
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
+    } 
     environment {
-        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')  // Set your AWS credentials ID
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')  // Set your AWS credentials ID
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
     }
 
+    agent any
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/AnandJoy7/terra_auto_ec2.git', branch: 'main'  // Replace with your repository URL
-            }
-        }
-        stage('Terraform Init') {
-            steps {
-                dir('src') {  // Change directory to 'src'
-                    sh 'terraform init'
+                script {
+                    dir("terraform") {
+                        git "https://github.com/AnandJoy7/terra_auto_ec2.git"
+                    }
                 }
             }
         }
-        stage('Terraform Plan') {
+
+        stage('Plan') {
             steps {
-                dir('src') {  // Change directory to 'src'
-                    sh 'terraform plan -out=tfplan'
+                sh 'pwd; cd terraform/; terraform init'
+                sh "pwd; cd terraform/; terraform plan -out=tfplan"
+                sh 'pwd; cd terraform/; terraform show -no-color tfplan > tfplan.txt'
+            }
+        }
+
+        stage('Approval') {
+            when {
+                not {
+                    equals expected: true, actual: params.autoApprove
+                }
+            }
+            steps {
+                script {
+                    def plan = readFile 'terraform/tfplan.txt'
+                    input message: "Do you want to apply the plan?",
+                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                 }
             }
         }
-        stage('Terraform Apply') {
+
+        stage('Apply') {
             steps {
-                dir('src') {  // Change directory to 'src'
-                    sh 'terraform apply -auto-approve tfplan'
-                }
+                sh "pwd; cd terraform/; terraform apply -input=false tfplan"
             }
         }
+
         stage('Run Python Script') {
             steps {
-                dir('src') {  // Change directory to 'src'
-                    sh 'python3 your_script.py'
+                script {
+                    // Ensure you have the right directory and Python is available
+                    dir('src') {  // Change to the directory where your Python script is located
+                        sh 'python3 terra_run.py'  // Replace 'your_script.py' with your actual Python script name
+                    }
                 }
             }
-        }
-        stage('Cleanup') {
-            steps {
-                dir('src') {  // Change directory to 'src'
-                    sh 'terraform destroy -auto-approve'
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'src/**/*', fingerprint: true
-        }
-        failure {
-            mail to: 'you@example.com',
-                 subject: "Pipeline failed",
-                 body: "Check the Jenkins job for details."
         }
     }
 }
