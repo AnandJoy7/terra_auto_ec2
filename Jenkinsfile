@@ -1,7 +1,7 @@
 pipeline {
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
-        string(name: 'AMI_ID', defaultValue: '', description: 'The AMI ID for the EC2 instance') // Add this line
+        string(name: 'AMI_ID', defaultValue: '', description: 'The AMI ID for the EC2 instance') 
     } 
     environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
@@ -23,50 +23,12 @@ pipeline {
             }
         }
 
-        stage('Plan') {
+        stage('Run Terraform Script') {
             steps {
                 script {
-                    dir('terraform/src') { 
-                        sh 'pwd' // Optional: for debugging
-                        sh 'terraform init'
-                        // Pass the ami_id variable
-                        sh "terraform plan -out=tfplan -var ami_id=${params.AMI_ID}" // Use the parameter here
-                        sh 'terraform show -no-color tfplan > tfplan.txt'
-                    }
-                }
-            }
-        }
-
-        stage('Approval') {
-            when {
-                not {
-                    equals expected: true, actual: params.autoApprove
-                }
-            }
-            steps {
-                script {
-                    def plan = readFile 'terraform/src/tfplan.txt'
-                    input message: "Do you want to apply the plan?",
-                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-                }
-            }
-        }
-
-        stage('Apply') {
-            steps {
-                script {
-                    dir('terraform/src') { 
-                        sh "terraform apply -input=false tfplan"
-                    }
-                }
-            }
-        }
-
-        stage('Run Python Script') {
-            steps {
-                script {
-                    dir('src') {
-                        sh 'python3 terra_run.py'
+                    dir('terraform/src') {
+                        // Pass the AMI ID to the Python script as an environment variable
+                        sh "AMI_ID=${params.AMI_ID} python3 terra_run.py"
                     }
                 }
             }
