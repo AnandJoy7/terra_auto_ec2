@@ -1,10 +1,22 @@
-import boto3
+import subprocess
 
-def describe_ec2_instances():
-    ec2 = boto3.resource('ec2')
-    instances = ec2.instances.all()
-    for instance in instances:
-        print(f'ID: {instance.id}, State: {instance.state}, Type: {instance.instance_type}')
+def run_terraform_commands():
+    try:
+        # Initialize Terraform
+        print("Initializing Terraform...")
+        subprocess.run(["terraform", "init"], check=True)
+
+        # Plan Terraform
+        print("Planning Terraform...")
+        subprocess.run(["terraform", "plan", "-out=tfplan", "-var", "ami_id=your_ami_id"], check=True)
+
+        # Apply Terraform
+        print("Applying Terraform...")
+        subprocess.run(["terraform", "apply", "-input=false", "tfplan"], check=True)
+
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+        exit(1)
 
 if __name__ == "__main__":
-    describe_ec2_instances()
+    run_terraform_commands()
