@@ -3,8 +3,8 @@ pipeline {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     } 
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
         GITHUB_CREDENTIALS = credentials('github-credentials') // Replace with your GitHub credentials ID
     }
 
@@ -65,7 +65,7 @@ pipeline {
             steps {
                 script {
                     dir('src') {
-                        sh 'python3 your_script.py'  // Update with your Python script name
+                        sh 'python3 terra_run.py'  // Update with your Python script name
                     }
                 }
             }
